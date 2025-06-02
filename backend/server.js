@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? [
-        process.env.FRONTEND_URL || 'https://your-frontend-domain.netlify.app',
+        process.env.FRONTEND_URL || 'https://code-editor-byme.netlify.app/',
         'https://your-custom-domain.com'
       ]
     : [
