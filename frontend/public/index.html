@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0d1117" />
+    <meta name="description" content="CodePad - Learn to Code! A beginner-friendly online code editor and compiler." />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Preload Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iOCIgZmlsbD0iIzBkMTExNyIvPgo8cGF0aCBkPSJNOCA4aDhsLTQgNGg4djhoLTh2OGgtOHoiIGZpbGw9IiM1OGE2ZmYiLz4KPC9zdmc+">
+    
+    <title>CodePad - Learn to Code!</title>
+    
+    <style>
+        /* Critical CSS for theme loading */
+        :root {
+            --color-primary: #0d1117;
+            --color-secondary: #161b22;
+            --color-tertiary: #21262d;
+            --color-quaternary: #30363d;
+            --color-textPrimary: #e6edf3;
+            --color-textSecondary: #7d8590;
+            --color-textAccent: #58a6ff;
+            --color-border: #30363d;
+            --color-borderHover: #484f58;
+            --color-success: #2ea043;
+            --color-successHover: #3fb950;
+            --color-error: #da3633;
+            --color-errorHover: #f85149;
+            --color-warning: #f0883e;
+            --color-editorBg: #0d1117;
+            --color-terminalBg: #0d1117;
+            --color-monacoTheme: 'vs-dark';
+        }
+        
+        /* Prevent FOUC (Flash of Unstyled Content) */
+        body {
+            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background: var(--color-primary);
+            color: var(--color-textPrimary);
+            overflow: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        code {
+            font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+        
+        /* Loading screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--color-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        .loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loading-logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+        
+        .loading-text {
+            color: var(--color-textAccent);
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--color-quaternary);
+            border-top: 3px solid var(--color-textAccent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Theme selector styles */
+        .theme-selector {
+            position: relative;
+            z-index: 1000;
+        }
+        
+        .theme-toggle {
+            background: var(--color-tertiary);
+            color: var(--color-textPrimary);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 120px;
+        }
+        
+        .theme-toggle:hover {
+            background: var(--color-quaternary);
+            border-color: var(--color-borderHover);
+        }
+        
+        .theme-icon {
+            font-size: 1.1rem;
+        }
+        
+        .theme-label {
+            flex: 1;
+            text-align: left;
+        }
+        
+        .dropdown-arrow {
+            transition: transform 0.2s ease;
+            font-size: 0.8rem;
+        }
+        
+        .dropdown-arrow.open {
+            transform: rotate(180deg);
+        }
+        
+        .theme-dropdown {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            right: 0;
+            background: var(--color-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            min-width: 280px;
+            z-index: 1001;
+            animation: slideDown 0.2s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .theme-dropdown-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .theme-dropdown-header h4 {
+            margin: 0;
+            color: var(--color-textPrimary);
+            font-size: 1rem;
+        }
+        
+        .theme-options {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .theme-option {
+            width: 100%;
+            background: none;
+            border: none;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+        
+        .theme-option:hover {
+            background: var(--color-tertiary);
+        }
+        
+        .theme-option.active {
+            background: var(--color-quaternary);
+        }
+        
+        .theme-option-icon {
+            font-size: 1.5rem;
+        }
+        
+        .theme-option-info {
+            flex: 1;
+        }
+        
+        .theme-option-name {
+            color: var(--color-textPrimary);
+            font-weight: 500;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+        
+        .theme-preview {
+            display: flex;
+            gap: 0.3rem;
+        }
+        
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .check-mark {
+            color: var(--color-success);
+            font-weight: bold;
+        }
+        
+        .theme-dropdown-footer {
+            padding: 0.8rem 1rem;
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+        }
+        
+        .theme-dropdown-footer small {
+            color: var(--color-textSecondary);
+        }
+        
+        .theme-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 999;
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+    <noscript>You need to enable JavaScript to use CodePad.</noscript>
+    
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-logo">🚀</div>
+        <div class="loading-text">Loading CodePad...</div>
+        <div class="loading-spinner"></div>
+    </div>
+    
+    <div id="root"></div>
+    
+    <script>
+        // Hide loading screen when React app is ready
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.classList.add('hidden');
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                    }, 500);
+                }
+            }, 1000);
+        });
+        
+        // Restore theme from localStorage before React loads
+        (function() {
+            const savedTheme = localStorage.getItem('codepad-theme');
+            if (savedTheme) {
+                const themes = {
+                    dark: {
+                        primary: '#0d1117', secondary: '#161b22', tertiary: '#21262d', quaternary: '#30363d',
+                        textPrimary: '#e6edf3', textSecondary: '#7d8590', textAccent: '#58a6ff',
+                        border: '#30363d', borderHover: '#484f58', success: '#2ea043', successHover: '#3fb950',
+                        error: '#da3633', errorHover: '#f85149', warning: '#f0883e',
+                        editorBg: '#0d1117', terminalBg: '#0d1117', monacoTheme: 'vs-dark'
+                    },
+                    light: {
+                        primary: '#ffffff', secondary: '#f6f8fa', tertiary: '#f1f3f4', quaternary: '#d0d7de',
+                        textPrimary: '#24292f', textSecondary: '#656d76', textAccent: '#0969da',
+                        border: '#d0d7de', borderHover: '#8c959f', success: '#1a7f37', successHover: '#1f883d',
+                        error: '#cf222e', errorHover: '#a40e26', warning: '#9a6700',
+                        editorBg: '#ffffff', terminalBg: '#ffffff', monacoTheme: 'light'
+                    },
+                    ocean: {
+                        primary: '#0f1419', secondary: '#1a2332', tertiary: '#273747', quaternary: '#3e4b5e',
+                        textPrimary: '#cdd6f4', textSecondary: '#89b4fa', textAccent: '#74c7ec',
+                        border: '#3e4b5e', borderHover: '#585b70', success: '#a6e3a1', successHover: '#94d3a5',
+                        error: '#f38ba8', errorHover: '#eba0ac', warning: '#f9e2af',
+                        editorBg: '#0f1419', terminalBg: '#0f1419', monacoTheme: 'vs-dark'
+                    },
+                    sunset: {
+                        primary: '#1a1625', secondary: '#2d1b69', tertiary: '#453a62', quaternary: '#6d597a',
+                        textPrimary: '#f7f3e9', textSecondary: '#e0a3cc', textAccent: '#ff8a80',
+                        border: '#6d597a', borderHover: '#8b7094', success: '#69f0ae', successHover: '#4caf50',
+                        error: '#ff5722', errorHover: '#ff7043', warning: '#ffc107',
+                        editorBg: '#1a1625', terminalBg: '#1a1625', monacoTheme: 'vs-dark'
+                    },
+                    forest: {
+                        primary: '#0d1b0d', secondary: '#1a2e1a', tertiary: '#2d4a2d', quaternary: '#4a6b4a',
+                        textPrimary: '#e8f5e8', textSecondary: '#a5d6a5', textAccent: '#4caf50',
+                        border: '#4a6b4a', borderHover: '#66bb6a', success: '#69f0ae', successHover: '#4caf50',
+                        error: '#f44336', errorHover: '#e57373', warning: '#ff9800',
+                        editorBg: '#0d1b0d', terminalBg: '#0d1b0d', monacoTheme: 'vs-dark'
+                    },
+                    cyberpunk: {
+                        primary: '#0a0a0f', secondary: '#1a1a2e', tertiary: '#16213e', quaternary: '#0f3460',
+                        textPrimary: '#00ff9f', textSecondary: '#ff007f', textAccent: '#00d4ff',
+                        border: '#0f3460', borderHover: '#ff007f', success: '#00ff9f', successHover: '#00e68c',
+                        error: '#ff073a', errorHover: '#ff1744', warning: '#ffff00',
+                        editorBg: '#0a0a0f', terminalBg: '#0a0a0f', monacoTheme: 'vs-dark'
+                    }
+                };
+                
+                const theme = themes[savedTheme];
+                if (theme) {
+                    const root = document.documentElement;
+                    Object.entries(theme).forEach(([key, value]) => {
+                        root.style.setProperty(`--color-${key}`, value);
+                    });
+                }
+            }
+        })();
+    </script>
+</body>
+</html>
