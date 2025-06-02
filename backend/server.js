@@ -2,25 +2,27 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs-extra');
+const { exec } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// CORS setup
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
+  origin: process.env.NODE_ENV === 'production'
     ? [
-        process.env.FRONTEND_URL || 'https://code-editor-byme.netlify.app/',
+        process.env.FRONTEND_URL || 'https://code-editor-byme.netlify.app', // ✅ no trailing slash
         'https://your-custom-domain.com'
       ]
     : [
-        'http://localhost:3000', 
+        'http://localhost:3000',
         'http://127.0.0.1:3000',
         process.env.FRONTEND_URL
       ],
   credentials: true
 }));
 
+// Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -34,27 +36,26 @@ app.use((req, res, next) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     platform: process.platform,
     node_version: process.version
   });
 });
 
-// Create temp directory if it doesn't exist (for local development)
+// Temp directory for non-cloud environments
 const tempDir = path.join(__dirname, 'temp');
 if (!process.env.VERCEL && !process.env.RENDER && !process.env.NETLIFY) {
   fs.ensureDirSync(tempDir);
 }
 
-// Routes - Fixed the route mounting
+// Route handling
 try {
   const executeRouter = require('./routes/execute');
   app.use('/api/execute', executeRouter);
 } catch (error) {
   console.error('Error loading execute routes:', error);
-  // Fallback route if the router fails to load
   app.use('/api/execute', (req, res) => {
     res.status(500).json({
       success: false,
@@ -64,7 +65,7 @@ try {
   });
 }
 
-// Test route to verify server is working
+// Test route
 app.get('/api/test', (req, res) => {
   res.json({
     success: true,
@@ -83,7 +84,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler - Fixed the route pattern
+// 404 Not Found handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -103,28 +104,24 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
+// Start the server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 Platform: ${process.platform}`);
-  console.log(`📁 Temp directory: ${process.env.VERCEL ? '/tmp' : process.env.RENDER ? '/tmp' : tempDir}`);
-  
-  // Log available commands
-  const { spawn } = require('child_process');
+  console.log(`📁 Temp directory: ${process.env.VERCEL || process.env.RENDER || process.env.NETLIFY ? '/tmp' : tempDir}`);
+
+  // Check compiler availability
   const checkCommand = (cmd) => {
-    try {
-      const result = spawn(cmd, ['--version'], { stdio: 'ignore', timeout: 1000, shell: true });
-      result.on('close', (code) => {
-        console.log(`✅ ${cmd}: ${code === 0 ? 'Available' : 'Not available'}`);
-      });
-      result.on('error', () => {
+    exec(`${cmd} --version`, (error, stdout, stderr) => {
+      if (error) {
         console.log(`❌ ${cmd}: Not available`);
-      });
-    } catch (e) {
-      console.log(`❌ ${cmd}: Not available`);
-    }
+      } else {
+        console.log(`✅ ${cmd}: Available`);
+      }
+    });
   };
-  
+
   setTimeout(() => {
     console.log('🔍 Checking available compilers...');
     checkCommand('node');
