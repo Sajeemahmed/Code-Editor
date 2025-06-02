@@ -103,6 +103,25 @@ function extractJavaClassName(code) {
   return 'Main';
 }
 
+// Java installation function for cloud platforms
+const installJava = () => {
+  return new Promise((resolve, reject) => {
+    console.log('🔧 Installing Java...');
+    exec(
+      'apt-get update && apt-get install -y default-jdk',
+      { shell: true, timeout: 120000 }, // 2 minute timeout for installation
+      (err, stdout, stderr) => {
+        if (err) {
+          console.error('❌ Java installation failed:', stderr);
+          return reject(new Error(`Java installation failed: ${stderr}`));
+        }
+        console.log('✅ Java installed successfully:', stdout);
+        resolve();
+      }
+    );
+  });
+};
+
 // Get available languages for the current platform
 async function getAvailableLanguages() {
   const available = {};
@@ -462,34 +481,8 @@ except Exception as e:
     };
   }
 }
-// Add this import at the top of your codeRunner.js file
-const { spawn, exec } = require('child_process');
-const fs = require('fs-extra');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
 
-// ... your existing code ...
-
-// Add this function BEFORE the executeJava function
-const installJava = () => {
-  return new Promise((resolve, reject) => {
-    console.log('Installing Java...');
-    exec(
-      'apt-get update && apt-get install -y default-jdk',
-      { shell: true, timeout: 120000 }, // 2 minute timeout for installation
-      (err, stdout, stderr) => {
-        if (err) {
-          console.error('Java installation failed:', stderr);
-          return reject(new Error(`Java installation failed: ${stderr}`));
-        }
-        console.log('Java installed successfully:', stdout);
-        resolve();
-      }
-    );
-  });
-};
-
-// Modified executeJava function with auto-installation
+// Java execution with auto-installation
 async function executeJava(code, input) {
   const startTime = Date.now();
   const tempDir = getTempDir();
@@ -502,7 +495,7 @@ async function executeJava(code, input) {
     // If Java is not available, try to install it (only on supported platforms)
     if ((!javacExists || !javaExists) && (isRender || process.env.NODE_ENV === 'production')) {
       try {
-        console.log('Java not found, attempting installation...');
+        console.log('☕ Java not found, attempting installation...');
         await installJava();
         
         // Check again after installation
@@ -513,7 +506,7 @@ async function executeJava(code, input) {
           throw new Error('Java installation completed but commands still not available');
         }
         
-        console.log('Java installation successful!');
+        console.log('✅ Java installation successful!');
       } catch (installError) {
         return {
           success: false,
